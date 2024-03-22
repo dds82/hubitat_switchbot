@@ -170,3 +170,6 @@ def setMode(mode)
         runIn(2, refresh)
     }    
 }
+
+def readDeviceDetails(details) {
+}
