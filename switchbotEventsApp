@@ -203,7 +203,8 @@ import groovy.transform.Field
         WoPlugJP: [name: "Plug Mini", attrs: commonSwitchAttrsMap], 
         WoPlugUS: [name: "Plug Mini", attrs: commonSwitchAttrsMap], 
         WoPresence: [name: "Motion Sensor", attrs: motionSensorAttrsMap],
-        WoStrip: [name: "Strip Light", attrs: commonSwitchAttrsMap],        
+        WoStrip: [name: "Strip Light", attrs: commonSwitchAttrsMap],
+        WoKeypadTouch: [name: "Keypad Touch"],
     ]
 
 static @Field allDevsAttrs = 
