@@ -236,11 +236,11 @@ def createChildDevices()
                     }
                 }
                 
-                createChildDevice(it.deviceName, it.deviceId, it.deviceType)
+                childDevice = createChildDevice(it.deviceName, it.deviceId, it.deviceType)
             }
-            else {
+
+            if (childDevice)
                 childDevice.readDeviceDetails(it)
-            }
         }
     }
     
