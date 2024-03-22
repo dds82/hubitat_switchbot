@@ -83,3 +83,5 @@ def unlock()
     writeDeviceCommand("unlock")
 }
 
+def readDeviceDetails(details) {
+}
