@@ -266,3 +266,6 @@ def tempToColor(temp)
         
     return genericName
 }
+
+def readDeviceDetails(details) {
+}
