@@ -71,6 +71,9 @@ def sendCommand(command, parameter = "default")
     }
 }
 
+def readDeviceDetails(details) {
+}
+
 import groovy.transform.Field
 
 @Field standardCommands = 
