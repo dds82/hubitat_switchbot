@@ -203,3 +203,6 @@ def correctedPositions(rawPos)
     
     return retVal
 }
+
+def readDeviceDetails(details) {
+}
