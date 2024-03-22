@@ -221,19 +221,25 @@ def createChildDevices()
         if(["Plug Mini (US)", "Plug Mini (JP)"].contains(it.deviceType)) { it.deviceType = "Plug Mini" }        
         if(it.deviceType == "Color Bulb") { it.deviceType = "Strip Light" }        
         if(it.deviceType == "Curtain3") { it.deviceType = "Curtain" }
-        
-        if((it.deviceId && it.deviceName && it.deviceType) && !findChildDevice(it.deviceId, it.deviceType))
+
+        def childDevice = findChildDevice(it.deviceId, it.deviceType)
+        if(it.deviceId && it.deviceName && it.deviceTyp)
         {
-            if(["Curtain", "Blind Tilt"].contains(it.deviceType))
-            {
-                // only create children for ungrouped Curtains and group masters
-                if(!((it.group != true) || (it.master == true)))
+            if (!childDevice) {
+                if(["Curtain", "Blind Tilt"].contains(it.deviceType))
                 {
-                    continue
+                    // only create children for ungrouped Curtains and group masters
+                    if(!((it.group != true) || (it.master == true)))
+                    {
+                        continue
+                    }
                 }
+                
+                createChildDevice(it.deviceName, it.deviceId, it.deviceType)
             }
-            
-            createChildDevice(it.deviceName, it.deviceId, it.deviceType)
+            else {
+                childDevice.readDeviceDetails(it)
+            }
         }
     }
     
@@ -294,7 +300,7 @@ def createChildDevice(name, id, deviceType)
 {
     try
     {
-        def customDevTypes = ["Bot", "Curtain", "Meter", "IR Device", "Humidifier", "Strip Light", "Smart Lock", "Motion Sensor", "Contact Sensor", "Plug Mini", "Blind Tilt"]
+        def customDevTypes = ["Bot", "Curtain", "Meter", "IR Device", "Humidifier", "Strip Light", "Smart Lock", "Motion Sensor", "Contact Sensor", "Plug Mini", "Blind Tilt", "Keypad Touch"]
         def genericDevTypes = []
         
         deviceType = deviceType.toString()
