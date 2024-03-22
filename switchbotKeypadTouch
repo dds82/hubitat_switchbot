@@ -1,0 +1,91 @@
+/*
+
+Copyright 2024 - dsegall
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-------------------------------------------
+
+Change history:
+
+0.9.22 dsegall Added Keypad Touch
+
+*/
+
+@Field static final String PERMANENT = "permanent"
+@Field static final String TIMED = "timeLimit"
+@Field static final String DISPOSABLE = "disposable"
+@Field static final String EMERGENCY = "urgent"
+
+@Field static final String SUCCESS = "success"
+@Field static final String FAILED = "failed"
+@Field static final String TIMEOUT = "timeout"
+
+metadata
+{
+    definition(name: "SwitchBot Keypad Touch", namespace: "tomw", author: "dsegall", importUrl: "")
+    {
+        capability "Refresh"
+
+        command "createKey", [[name: "ID*", type: "STRING"], [name: "Password*", type: "STRING"], [name: "Type", type: "ENUM", constraints: [PERMANENT, TIMED, DISPOSABLE, EMERGENCY]], [name: "Start Time", type: "NUMBER"], [name: "End Time", type: "NUMBER"]]
+        command "deleteKey", [[name: "ID*", type: "STRING"]]
+    }
+}
+
+def initialize()
+{
+    refresh()
+}
+
+def refresh()
+{
+    parent?.refreshFromParent(device)
+}
+
+def parse(body)
+{
+    if(!body) { return }
+    
+    if(null != body.doorState)
+    {
+        def dState = body.doorState.toLowerCase()
+        sendEvent(name: "contact", value: ["open", "closed"].contains(dState) ? dState : "unknown")
+    }
+    
+    if(null != body.lockState)
+    {
+        def lState = body.lockState.toLowerCase()
+        sendEvent(name: "lock", value: ["unlocked", "locked", "jammed"].contains(lState) ? lState : "unknown")
+    }
+}
+
+def writeDeviceCommand(command, parameter = "default", commandType = "command")
+{
+    def id = getParent()?.getId(device.getDeviceNetworkId())
+    if(id)
+    {
+        getParent()?.writeDeviceCommand(id, command, parameter, commandType)
+    }
+}
+
+def createKey(String name, String code, String type=PERMANENT, long startTime=0, long endTime=0) {
+  Map params = ["name": name, "type": type, "password": code, "startTime": startTime, "endTime": endTime]
+  writeDeviceCommand("createKey", params)
+}
+
+def deleteKey(String name) {
+  writeDeviceCommand("deleteKey", ["name": name])
+}
+
+def readDeviceDetails(details) {
+}
