@@ -72,3 +72,5 @@ def parse(body)
     }
 }
 
+def readDeviceDetails(details) {
+}
