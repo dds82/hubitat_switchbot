@@ -100,3 +100,6 @@ def toggle()
 {
     writeDeviceCommand("toggle")    
 }
+
+def readDeviceDetails(details) {
+}
