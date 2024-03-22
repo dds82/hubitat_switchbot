@@ -18,6 +18,7 @@ limitations under the License.
 
 Change history:
 
+0.9.24 - dsegall - added Keypad Touch
 0.9.21 - tomw -
     Added temperature, humidity, and lightLevel support for Hub 2 (in SwitchBot Meter driver).
     Added Indoor/Outdoor Thermo-Hygrometer (in SwitchBot Meter driver).
