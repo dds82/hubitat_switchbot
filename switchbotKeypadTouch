@@ -94,7 +94,7 @@ def parse(body)
 
         if (atomicState.numDeletions == 0) {
             atomicState.needsReread = false
-            parent?.rereadDevices(this)
+            parent?.rereadDevices(device.getDeviceNetworkId())
         }
     }
     else sendEvent(name: "codeChanged", value: "failed")
