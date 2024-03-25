@@ -97,6 +97,20 @@ def initialize()
     }
 }
 
+def rereadDevices()
+{
+    try
+    {
+        readDevices()
+        createChildDevices(false)
+    }
+    catch (Exception e)
+    {
+        logDebug("rereadDevices() failed: ${e.message}")
+        return
+    }
+}
+
 def updated()
 {
     configure()
@@ -194,7 +208,7 @@ def refreshFromParent(child)
     }
 }
 
-def createChildDevices()
+def createChildDevices(boolean createNewDevices=true)
 {
     def devices = getDevices()
 
@@ -224,9 +238,9 @@ def createChildDevices()
         if(it.deviceType == "Curtain3") { it.deviceType = "Curtain" }
 
         def childDevice = findChildDevice(it.deviceId, it.deviceType)
-        if(it.deviceId && it.deviceName && it.deviceTyp)
+        if(it.deviceId && it.deviceName && it.deviceType)
         {
-            if (!childDevice) {
+            if (!childDevice && createNewDevices) {
                 if(["Curtain", "Blind Tilt"].contains(it.deviceType))
                 {
                     // only create children for ungrouped Curtains and group masters
