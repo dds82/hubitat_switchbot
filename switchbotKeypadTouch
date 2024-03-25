@@ -45,6 +45,7 @@ metadata
 
         command "createKey", [[name: "ID*", type: "STRING"], [name: "Password*", type: "STRING"], [name: "Type", type: "ENUM", constraints: [PERMANENT, TIMED, DISPOSABLE, EMERGENCY]], [name: "Start Time", type: "NUMBER"], [name: "End Time", type: "NUMBER"]]
         command "deleteKey", [[name: "ID*", type: "STRING"]]
+        command "deleteKeyByName", [[name: "Name*", type: "STRING"]]
     }
 
     preferences
@@ -122,11 +123,20 @@ def deleteKey(String id, boolean recordPendingCommand=true) {
   writeDeviceCommand("deleteKey", ["id": id])
 }
 
+def deleteKeyByName(String name, boolean recordPendingCommand=true) {
+    String id = atomicState.lockCodesByName[name]
+    if (id) {
+        deleteKey(id, recordPendingCommand)
+    }
+}
+
 def readDeviceDetails(details) {
     atomicState.lockCodes = []
+    atomimcState.lockCodesByName = [:]
     def expiredCodes = []
     for (it in details?.keyList) {
         atomicState.lockCodes << ["id": it.id, "name": it.name, "code": it.password, "iv": it.iv]
+        atomicState.lockCodesByName[it.name] = it.id
         if (it.status == PASSCODE_EXPIRED)
             expiredCodes << it.id
     }
