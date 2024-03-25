@@ -527,6 +527,23 @@ def hmac_sha256(String secretKey, String data)
     return org.apache.commons.codec.binary.Base64.encodeBase64String(sign)
 }
 
+def decryptPasscode(String iv, String encrypted) {
+     try {
+        def ivSpec = new javax.crypto.spec.IvParameterSpec(initVector.getBytes("UTF-8"))
+        def skeySpec = new javax.crypto.spec.SecretKeySpec(key.getBytes("UTF-8"), "AES")
+ 
+        def cipher = javax.crypto.Cipher.getInstance("AES/CBC/PKCS5PADDING")
+        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec)
+        byte[] original = cipher.doFinal(Base64.decodeBase64(encrypted))
+ 
+        return new String(original)
+    } catch (Exception ex) {
+        ex.printStackTrace()
+    }
+ 
+    return null
+}
+
 def httpGetExec(params, throwToCaller = false)
 {
     logDebug("httpGetExec(${params})")
