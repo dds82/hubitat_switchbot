@@ -97,12 +97,12 @@ def initialize()
     }
 }
 
-def rereadDevices(requestor=null)
+def rereadDevices(String requestorDNI=null)
 {
     try
     {
         readDevices()
-        createChildDevices(false, requestor)
+        createChildDevices(false, requestorDNI)
     }
     catch (Exception e)
     {
@@ -208,7 +208,7 @@ def refreshFromParent(child)
     }
 }
 
-def createChildDevices(boolean createNewDevices=true, Object requestor=null)
+def createChildDevices(boolean createNewDevices=true, String requestorDNI=null)
 {
     def devices = getDevices()
 
@@ -253,7 +253,7 @@ def createChildDevices(boolean createNewDevices=true, Object requestor=null)
                 childDevice = createChildDevice(it.deviceName, it.deviceId, it.deviceType)
             }
 
-            if (childDevice && (requestor == null || requestor == childDevice))
+            if (childDevice && (requestorDNI == null || requestorDNI == childDevice.getDeviceNetworkId()))
                 childDevice.readDeviceDetails(it)
         }
     }
