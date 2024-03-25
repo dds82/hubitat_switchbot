@@ -144,7 +144,7 @@ def cleanExpiredCodes(expiredCodes) {
 }
 
 def deleteCode(position) {
-    if (position < atomicState.lockCodes.size() && atomicState.lockCodes[position])
+    if (position >= 0 && position < atomicState.lockCodes.size() && atomicState.lockCodes[position])
         deleteKey(atomicState.lockCodes[position].id)
 }
 
