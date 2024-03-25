@@ -22,6 +22,8 @@ Change history:
 
 */
 
+import groovy.json.JsonBuilder
+
 @Field static final String PERMANENT = "permanent"
 @Field static final String TIMED = "timeLimit"
 @Field static final String DISPOSABLE = "disposable"
@@ -31,11 +33,15 @@ Change history:
 @Field static final String FAILED = "failed"
 @Field static final String TIMEOUT = "timeout"
 
+@Field static final String PASSCODE_NORMAL = "normal"
+@Field static final String PASSCODE_EXPIRED = "expired"
+
 metadata
 {
     definition(name: "SwitchBot Keypad Touch", namespace: "tomw", author: "dsegall", importUrl: "")
     {
         capability "Refresh"
+        capability "LockCodes"
 
         command "createKey", [[name: "ID*", type: "STRING"], [name: "Password*", type: "STRING"], [name: "Type", type: "ENUM", constraints: [PERMANENT, TIMED, DISPOSABLE, EMERGENCY]], [name: "Start Time", type: "NUMBER"], [name: "End Time", type: "NUMBER"]]
         command "deleteKey", [[name: "ID*", type: "STRING"]]
@@ -60,6 +66,10 @@ def logDebug(msg)
 
 def initialize()
 {
+    atomicState.numDeletions = 0
+    atomicState.needsReread = false
+    sendEvent(name: "codeLength", value: 12)
+    sendEvent(name: "maxCodes", value: 100)
     refresh()
 }
 
@@ -70,7 +80,24 @@ def refresh()
 
 def parse(body)
 {
-    logDebug body
+    if (logEnable)
+        logDebug body
+
+    if (atomicState.numDeletions > 0) atomicState.numDeletions--
+
+    if (body.result == "success") {
+        atomicState.needsReread = true
+        if (body.eventName == "createKey")
+            sendEvent(name: "codeChanged", value: "added")
+        else if (body.eventName == "deleteKey")
+            sendEvent(name: "codeChanged", value: "deleted")
+
+        if (atomicState.numDeletions == 0) {
+            atomicState.needsReread = false
+            parent?.rereadDevices()
+        }
+    }
+    else sendEvent(name: "codeChanged", value: "failed")
 }
 
 def writeDeviceCommand(command, parameter = "default", commandType = "command")
@@ -87,9 +114,50 @@ def createKey(String name, String code, String type=PERMANENT, long startTime=0,
   writeDeviceCommand("createKey", params)
 }
 
-def deleteKey(String name) {
-  writeDeviceCommand("deleteKey", ["name": name])
+def deleteKey(String id) {
+  writeDeviceCommand("deleteKey", ["id": id])
 }
 
 def readDeviceDetails(details) {
+    atomicState.lockCodes = []
+    def expiredCodes = []
+    for (it in details?.keyList) {
+        atomicState.lockCodes << ["id": it.id, "name": it.name, "code": it.password, "iv": it.iv]
+        if (it.status == PASSCODE_EXPIRED)
+            expiredCodes << it.id
+    }
+
+    sendEvent(name: "lockCodes", value: getCodes())
+
+    if (!expiredCodes.isEmpty()) {
+        cleanExpiredCodes(expiredCodes)
+    }
+}
+
+def cleanExpiredCodes(expiredCodes) {
+    atomicState.numDeletions = expiredCodes.size()
+    for (code in expiredCodes) deleteKey(code)
+}
+
+def deleteCode(position) {
+    if (position < atomicState.lockCodes.size() && atomicState.lockCodes[position])
+        deleteKey(atomicState.lockCodes[position].id)
+}
+
+def setCodeLength() {
+    // Not supported
+}
+
+def setCode(codeposition, pincode, name) {
+    deleteCode(codeposition)
+    createKey(name, pincode)
+}
+
+def getCodes() {
+    def codes = []
+    for (it in atomicState.lockCodes) {
+        codes << ["id": it.id, "name": it.name, "code": parent?.decryptPasscode(it.iv, it.code)]
+    }
+
+    return new JsonBuilder(codes).toString()
 }
