@@ -66,7 +66,7 @@ def logDebug(msg)
 
 def initialize()
 {
-    atomicState.numDeletions = 0
+    atomicState.pendingCommands = 0
     atomicState.needsReread = false
     sendEvent(name: "codeLength", value: 12)
     sendEvent(name: "maxCodes", value: 100)
@@ -75,7 +75,7 @@ def initialize()
 
 def refresh()
 {
-    parent?.refreshFromParent(device)
+    parent?.rereadDevices(device.getDeviceNetworkId())
 }
 
 def parse(body)
@@ -83,7 +83,7 @@ def parse(body)
     if (logEnable)
         logDebug body
 
-    if (atomicState.numDeletions > 0) atomicState.numDeletions--
+    if (atomicState.pendingCommands > 0) atomicState.pendingCommands--
 
     if (body.result == "success") {
         atomicState.needsReread = true
@@ -92,7 +92,7 @@ def parse(body)
         else if (body.eventName == "deleteKey")
             sendEvent(name: "codeChanged", value: "deleted")
 
-        if (atomicState.numDeletions == 0) {
+        if (atomicState.pendingCommands == 0) {
             atomicState.needsReread = false
             parent?.rereadDevices(device.getDeviceNetworkId())
         }
@@ -111,10 +111,14 @@ def writeDeviceCommand(command, parameter = "default", commandType = "command")
 
 def createKey(String name, String code, String type=PERMANENT, long startTime=0, long endTime=0) {
   Map params = ["name": name, "type": type, "password": code, "startTime": startTime, "endTime": endTime]
+    atomicState.pendingCommands++
   writeDeviceCommand("createKey", params)
 }
 
-def deleteKey(String id) {
+def deleteKey(String id, boolean recordPendingCommand=true) {
+    if (recordPendingCommand)
+        atomicState.pendingCommands++
+
   writeDeviceCommand("deleteKey", ["id": id])
 }
 
@@ -135,8 +139,8 @@ def readDeviceDetails(details) {
 }
 
 def cleanExpiredCodes(expiredCodes) {
-    atomicState.numDeletions = expiredCodes.size()
-    for (code in expiredCodes) deleteKey(code)
+    atomicState.pendingCommands += expiredCodes.size()
+    for (code in expiredCodes) deleteKey(code, false)
 }
 
 def deleteCode(position) {
