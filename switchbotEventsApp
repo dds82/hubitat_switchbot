@@ -166,9 +166,10 @@ def processEvent(eventMap)
     // check whether we know about this type of device
     def devTypeInfo = deviceTypesMap.getAt(eventMap.context.deviceType)    
     if(!devTypeInfo) {
-        if (context.lockState) {
+        if (eventMap.context.lockState) {
             // This is a Smart Lock Pro which doesn't include device type in the message
-            devTypeInfo = "Smart Lock"
+            devTypeInfo = deviceTypesMap.getAt("WoLock")
+            logDebug("Received event with no device type, mapping to Smart Lock")
         }
         else return
     }
@@ -232,5 +233,3 @@ static @Field motionSensorAttrsMap =
     [
         detectionState: "moveDetected"
     ]
-
-
