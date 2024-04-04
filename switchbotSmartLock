@@ -30,6 +30,7 @@ metadata
         capability "ContactSensor"
         capability "Lock"
         capability "Refresh"
+        capability "Battery"
     }
 }
 
@@ -60,6 +61,12 @@ def parse(body)
     {
         def lState = body.lockState.toLowerCase()
         sendEvent(name: "lock", value: ["unlocked", "locked", "jammed"].contains(lState) ? lState : "unknown")
+    }
+    
+    if(null != body.battery)
+    {
+        def battery = body.battery.toInteger()
+        sendEvent(name: "battery", value: battery)
     }
 }
 
