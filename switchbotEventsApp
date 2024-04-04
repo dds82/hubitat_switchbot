@@ -165,7 +165,13 @@ def processEvent(eventMap)
     
     // check whether we know about this type of device
     def devTypeInfo = deviceTypesMap.getAt(eventMap.context.deviceType)    
-    if(!devTypeInfo) { return }
+    if(!devTypeInfo) {
+        if (context.lockState) {
+            // This is a Smart Lock Pro which doesn't include device type in the message
+            devTypeInfo = "Smart Lock"
+        }
+        else return
+    }
     
     // build the event that we'll pass to the driver
     def newEvent = [:]
