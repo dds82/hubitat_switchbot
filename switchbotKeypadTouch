@@ -23,6 +23,7 @@ Change history:
 */
 
 import groovy.json.JsonBuilder
+import groovy.transform.Field
 
 @Field static final String PERMANENT = "permanent"
 @Field static final String TIMED = "timeLimit"
