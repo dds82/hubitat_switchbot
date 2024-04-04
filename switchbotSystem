@@ -331,6 +331,8 @@ def createChildDevice(name, id, deviceType)
             logDebug("createChildDevice: deviceType not supported")
             throw new Exception("deviceType not supported")
         }
+
+        if (deviceType == "Smart Lock Pro") deviceType = "Smart Lock"
         
         def virtDevType = ((customDevTypes.contains(deviceType)) ? "SwitchBot " : "Generic Component ") + deviceType
         def virtDevData = [name: childName(name, deviceType), label: childName(name, deviceType), isComponent: false]
