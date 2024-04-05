@@ -43,6 +43,7 @@ metadata
     {
         capability "Refresh"
         capability "LockCodes"
+        capability "Initialize"
 
         command "createKey", [[name: "ID*", type: "STRING"], [name: "Password*", type: "STRING"], [name: "Type", type: "ENUM", constraints: [PERMANENT, TIMED, DISPOSABLE, EMERGENCY]], [name: "Start Time", type: "NUMBER"], [name: "End Time", type: "NUMBER"]]
         command "deleteKey", [[name: "ID*", type: "STRING"]]
@@ -135,7 +136,9 @@ def readDeviceDetails(details) {
     atomicState.lockCodes = []
     atomicState.lockCodesByName = [:]
     def expiredCodes = []
+    logDebug("Details=" + details)
     for (it in details?.keyList) {
+        logDebug("Code=" + it)
         atomicState.lockCodes << ["id": it.id, "name": it.name, "code": it.password, "iv": it.iv]
         atomicState.lockCodesByName[it.name] = it.id
         if (it.status == PASSCODE_EXPIRED)
