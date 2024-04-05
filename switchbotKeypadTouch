@@ -176,7 +176,7 @@ def readDeviceDetails(details) {
 }
 
 def updateCodesAttr() {
-    sendEvent(name: "lockCodes", value: getCodes(lockCodeEncryption == null ? false : lockCodeEncryption))
+    sendEvent(name: "lockCodes", value: getCodes())
 }
 
 def cleanExpiredCodes(expiredCodes) {
@@ -198,7 +198,8 @@ def setCode(codeposition, pincode, name) {
     createKey(name, pincode)
 }
 
-def getCodes(boolean encryptionEnabled=true) {
+def getCodes() {
+    boolean encryptionEnabled=lockCodeEncryption == null ? false : lockCodeEncryption
     def codes = [:]
     int i = 0
     for (it in atomicState.lockCodes) {
