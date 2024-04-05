@@ -36,6 +36,10 @@ Change history:
 
 */
 
+import javax.crypto.*
+import javax.crypto.spec.*
+import org.apache.commons.codec.binary.Base64
+
 metadata
 {
     definition(name: "SwitchBot System", namespace: "tomw", author: "tomw", importUrl: "")
@@ -531,19 +535,30 @@ def hmac_sha256(String secretKey, String data)
 
 def decryptPasscode(String iv, String encrypted) {
      try {
-        def ivSpec = new javax.crypto.spec.IvParameterSpec(iv.getBytes("UTF-8"))
-        def skeySpec = new javax.crypto.spec.SecretKeySpec(secretKey.getBytes("UTF-8"), "AES")
- 
-        def cipher = javax.crypto.Cipher.getInstance("AES/CBC/PKCS5PADDING")
+         byte[] ivBytes = hexStringToByteArray(iv)
+        def ivSpec = new IvParameterSpec(ivBytes)
+        def skeySpec = new SecretKeySpec(hexStringToByteArray(secretKey), "AES")
+         
+        def cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
         cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec)
-        byte[] original = cipher.doFinal(org.apache.commons.codec.binary.Base64.decodeBase64(encrypted))
+        byte[] original = cipher.doFinal(encrypted.decodeBase64())
  
         return new String(original)
     } catch (Exception ex) {
-        ex.printStackTrace()
+        logDebug(ex)
     }
  
     return null
+}
+
+byte[] hexStringToByteArray(String s) {
+    int len = s.length()
+    byte[] data = new byte[len / 2]
+    for (int i = 0; i < len; i += 2) {
+        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                             + Character.digit(s.charAt(i+1), 16))
+    }
+    return data
 }
 
 def httpGetExec(params, throwToCaller = false)
