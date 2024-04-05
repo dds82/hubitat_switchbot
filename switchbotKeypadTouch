@@ -57,6 +57,7 @@ metadata
         section
         {
             input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
+            input name: "lockCodeEncryption", type: "bool", title: "Enable lock code encryption", defaultValue: false
         }
     }
 }
@@ -76,6 +77,10 @@ def initialize()
     sendEvent(name: "codeLength", value: 12)
     sendEvent(name: "maxCodes", value: 100)
     refresh()
+}
+
+def updated() {
+    updateCodesAttr()
 }
 
 def refresh()
@@ -163,11 +168,15 @@ def readDeviceDetails(details) {
     atomicState.lockCodes = newCodes
     atomicState.lockCodesByName = newCodesByName
     
-    sendEvent(name: "lockCodes", value: getCodes())
+    updateCodesAttr()
 
     if (!expiredCodes.isEmpty()) {
         cleanExpiredCodes(expiredCodes)
     }
+}
+
+def updateCodesAttr() {
+    sendEvent(name: "lockCodes", value: getCodes(lockCodeEncryption == null ? false : lockCodeEncryption))
 }
 
 def cleanExpiredCodes(expiredCodes) {
@@ -189,11 +198,12 @@ def setCode(codeposition, pincode, name) {
     createKey(name, pincode)
 }
 
-def getCodes() {
+def getCodes(boolean encryptionEnabled=true) {
     def codes = []
     for (it in atomicState.lockCodes) {
         codes << ["id": it.id, "name": it.name, "code": parent?.decryptPasscode(it.iv, it.code)]
     }
 
-    return new JsonBuilder(codes).toString()
+    String str = new JsonBuilder(codes).toString()
+    return encryptionEnabled ? encrypt(str) : str
 }
