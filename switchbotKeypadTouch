@@ -199,9 +199,10 @@ def setCode(codeposition, pincode, name) {
 }
 
 def getCodes(boolean encryptionEnabled=true) {
-    def codes = []
+    def codes = [:]
+    int i = 0
     for (it in atomicState.lockCodes) {
-        codes << ["id": it.id, "name": it.name, "code": parent?.decryptPasscode(it.iv, it.code)]
+        codes[i++] = ["name": it.name, "code": parent?.decryptPasscode(it.iv, it.code)]
     }
 
     String str = new JsonBuilder(codes).toString()
