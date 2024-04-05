@@ -157,9 +157,9 @@ def observeEvent()
 
 def processEvent(eventMap)
 {
-    if(!eventMap) { return }
-    
     logDebug("incoming event: ${eventMap}")
+    
+    if(!eventMap) { return }
     
     if("changeReport" != eventMap?.eventType) { return }
     
@@ -233,3 +233,5 @@ static @Field motionSensorAttrsMap =
     [
         detectionState: "moveDetected"
     ]
+
+
