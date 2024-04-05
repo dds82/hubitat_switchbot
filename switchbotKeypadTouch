@@ -127,6 +127,7 @@ def deleteKey(String id, boolean recordPendingCommand=true) {
 
 def deleteKeyByName(String name, boolean recordPendingCommand=true) {
     String id = atomicState.lockCodesByName[name]
+    logDebug("delete KeyByName found key ${id}")
     if (id) {
         deleteKey(id, recordPendingCommand)
     }
@@ -136,15 +137,22 @@ def readDeviceDetails(details) {
     atomicState.lockCodes = []
     atomicState.lockCodesByName = [:]
     def expiredCodes = []
+    
+    def newCodes = []
+    def newCodesByName = [:]
+    
     logDebug("Details=" + details)
     for (it in details?.keyList) {
         logDebug("Code=" + it)
-        atomicState.lockCodes << ["id": it.id, "name": it.name, "code": it.password, "iv": it.iv]
-        atomicState.lockCodesByName[it.name] = it.id
+        newCodes << ["id": it.id, "name": it.name, "code": it.password, "iv": it.iv]
+        newCodesByName[it.name] = it.id
         if (it.status == PASSCODE_EXPIRED)
             expiredCodes << it.id
     }
 
+    atomicState.lockCodes = newCodes
+    atomicState.lockCodesByName = newCodesByName
+    
     sendEvent(name: "lockCodes", value: getCodes())
 
     if (!expiredCodes.isEmpty()) {
