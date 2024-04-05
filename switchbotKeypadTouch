@@ -47,7 +47,7 @@ metadata
         capability "LockCodes"
         capability "Initialize"
 
-        command "createKey", [[name: "ID*", type: "STRING"], [name: "Password*", type: "STRING"], [name: "Type", type: "ENUM", constraints: [PERMANENT, TIMED, DISPOSABLE, EMERGENCY]], [name: "Start Time", type: "STRING"], [name: "End Time", type: "STRING"]]
+        command "createKey", [[name: "Name*", type: "STRING"], [name: "Password*", type: "STRING"], [name: "Type", type: "ENUM", constraints: [PERMANENT, TIMED, DISPOSABLE, EMERGENCY]], [name: "Start Time", type: "STRING"], [name: "End Time", type: "STRING"]]
         command "deleteKey", [[name: "ID*", type: "STRING"]]
         command "deleteKeyByName", [[name: "Name*", type: "STRING"]]
     }
