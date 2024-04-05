@@ -25,6 +25,8 @@ Change history:
 import groovy.json.JsonBuilder
 import groovy.transform.Field
 
+import java.text.SimpleDateFormat
+
 @Field static final String PERMANENT = "permanent"
 @Field static final String TIMED = "timeLimit"
 @Field static final String DISPOSABLE = "disposable"
@@ -45,7 +47,7 @@ metadata
         capability "LockCodes"
         capability "Initialize"
 
-        command "createKey", [[name: "ID*", type: "STRING"], [name: "Password*", type: "STRING"], [name: "Type", type: "ENUM", constraints: [PERMANENT, TIMED, DISPOSABLE, EMERGENCY]], [name: "Start Time", type: "NUMBER"], [name: "End Time", type: "NUMBER"]]
+        command "createKey", [[name: "ID*", type: "STRING"], [name: "Password*", type: "STRING"], [name: "Type", type: "ENUM", constraints: [PERMANENT, TIMED, DISPOSABLE, EMERGENCY]], [name: "Start Time", type: "STRING"], [name: "End Time", type: "STRING"]]
         command "deleteKey", [[name: "ID*", type: "STRING"]]
         command "deleteKeyByName", [[name: "Name*", type: "STRING"]]
     }
@@ -113,7 +115,14 @@ def writeDeviceCommand(command, parameter = "default", commandType = "command")
     }
 }
 
-def createKey(String name, String code, String type=PERMANENT, long startTime=0, long endTime=0) {
+def createKey(String name, String code, String type=PERMANENT, String startTimeS=null, String endTimeS=null) {
+    SimpleDateFormat df = new SimpleDateFormat("HH:mm")
+    Date date = startTimeS ? df.parse(startTimeS) : null
+    long startTime = date ? date.getTime() : 0
+    
+    date = endTimeS ? df.parse(endTimeS) : null
+    long endTime = date ? date.getTime() : 0
+    
   Map params = ["name": name, "type": type, "password": code, "startTime": startTime, "endTime": endTime]
     atomicState.pendingCommands++
   writeDeviceCommand("createKey", params)
