@@ -84,7 +84,7 @@ def refresh()
 def parse(body)
 {
     if (logEnable)
-        logDebug body
+    logDebug("parse: ${body}")
 
     if (atomicState.pendingCommands > 0) atomicState.pendingCommands--
 
@@ -97,7 +97,8 @@ def parse(body)
 
         if (atomicState.pendingCommands == 0) {
             atomicState.needsReread = false
-            parent?.rereadDevices(device.getDeviceNetworkId())
+            logDebug("Refreshing...")
+            runIn(1, "refresh")
         }
     }
     else sendEvent(name: "codeChanged", value: "failed")
