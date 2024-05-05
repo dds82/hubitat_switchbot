@@ -172,6 +172,7 @@ def readDeviceDetails(details) {
     
     updateCodesAttr()
 
+    logDebug("Found ${expiredCodes.size()} expired codes")
     if (!expiredCodes.isEmpty()) {
         cleanExpiredCodes(expiredCodes)
     }
@@ -182,9 +183,15 @@ def updateCodesAttr() {
 }
 
 def cleanExpiredCodes(expiredCodes) {
-    if (deleteExpiredCodes == null || deleteExpiredCodes) {
+    boolean clean = deleteExpiredCodes == null ? true : deleteExpiredCodes
+    logDebug("cleanExpiredCodes=${clean} size=${expiredCodes.size}")
+    if (clean) {
         atomicState.pendingCommands += expiredCodes.size()
-        for (code in expiredCodes) deleteKey(code.toString(), false)
+        for (code in expiredCodes) {
+            String codeStr = code.toString()
+            logDebug("Deleting expired code ${codeStr}")
+            deleteKey(codeStr, false)
+        }
     }
 }
 
