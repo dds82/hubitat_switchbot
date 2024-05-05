@@ -161,7 +161,7 @@ def readDeviceDetails(details) {
     logDebug("Details=" + details)
     for (it in details?.keyList) {
         logDebug("Code=" + it)
-        newCodes << ["id": it.id, "name": it.name, "code": it.password, "iv": it.iv]
+        newCodes << ["id": it.id, "name": it.name, "code": it.password, "iv": it.iv, "status": it.status]
         newCodesByName[it.name] = it.id
         if (it.status == PASSCODE_EXPIRED)
             expiredCodes << it.id
