@@ -58,6 +58,7 @@ metadata
         {
             input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: false
             input name: "lockCodeEncryption", type: "bool", title: "Enable lock code encryption", defaultValue: false
+            input name: "deleteExpiredCodes", type: "bool", title: "Automatically delete expired codes", defaultValue: true
         }
     }
 }
@@ -137,12 +138,13 @@ def deleteKey(String id, boolean recordPendingCommand=true) {
     if (recordPendingCommand)
         atomicState.pendingCommands++
 
-  writeDeviceCommand("deleteKey", ["id": id])
+     logDebug("deleteKey id=${id}")
+     writeDeviceCommand("deleteKey", ["id": id])
 }
 
 def deleteKeyByName(String name, boolean recordPendingCommand=true) {
     String id = atomicState.lockCodesByName[name]
-    logDebug("delete KeyByName found key ${id}")
+    logDebug("deleteKeyByName found key ${id}")
     if (id) {
         deleteKey(id, recordPendingCommand)
     }
@@ -180,13 +182,15 @@ def updateCodesAttr() {
 }
 
 def cleanExpiredCodes(expiredCodes) {
-    atomicState.pendingCommands += expiredCodes.size()
-    for (code in expiredCodes) deleteKey(code, false)
+    if (deleteExpiredCodes == null || deleteExpiredCodes) {
+        atomicState.pendingCommands += expiredCodes.size()
+        for (code in expiredCodes) deleteKey(code.toString(), false)
+    }
 }
 
 def deleteCode(position) {
     if (position >= 0 && position < atomicState.lockCodes.size() && atomicState.lockCodes[position])
-        deleteKey(atomicState.lockCodes[position].id)
+        deleteKey(atomicState.lockCodes[position].id.toString())
 }
 
 def setCodeLength() {
