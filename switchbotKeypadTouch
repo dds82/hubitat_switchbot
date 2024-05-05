@@ -151,7 +151,13 @@ def createKey(String name, String code, String type=PERMANENT, String startTimeS
     
       Map params = ["name": name, "type": type, "password": code, "startTime": startTime, "endTime": endTime]
         atomicState.pendingCommands++
-      writeDeviceCommand("createKey", params)
+            try {
+              writeDeviceCommand("createKey", params)
+            }
+        catch (Exception e) {
+            logDebug("createKey failed: ${e.getMessage()}")
+            atomicState.pendingCommands--
+        }
     }
 }
 
@@ -170,7 +176,13 @@ def deleteKey(String id, boolean recordPendingCommand=true) {
         atomicState.pendingCommands++
 
      logDebug("deleteKey id=${id}")
-     writeDeviceCommand("deleteKey", ["id": id])
+    try {
+         writeDeviceCommand("deleteKey", ["id": id])
+    }
+    catch (Exception e) {
+        logDebug("deleteKey failed: ${e.getMessage()}")
+        atomicState.pendingCommands--
+    }
 }
 
 def deleteKeyByName(String name, boolean recordPendingCommand=true) {
