@@ -203,6 +203,7 @@ import groovy.transform.Field
     [
         WoContact: [name: "Contact Sensor", attrs: contactSensorAttrsMap],
         WoLock: [name: "Smart Lock"],
+        WoLockPro: [name: "Smart Lock"]
         WoMeter: [name: "Meter"],
         WoMeterPlus: [name: "Meter"],
         WoHub2: [name: "Meter"],
