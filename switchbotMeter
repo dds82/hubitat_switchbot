@@ -18,6 +18,7 @@ limitations under the License.
 
 Change history:
 
+0.9.14 - dsegall - Added Battery capability
 0.9.13 - tomw - Added Contact Sensor and Motion Sensor support.
 0.9.12 - tomw - Added Smart Lock and webhook events support.
 0.9.0  - tomw - Initial release.
@@ -32,6 +33,7 @@ metadata
         capability "RelativeHumidityMeasurement"
         capability "Refresh"
         capability "TemperatureMeasurement"
+        capability "Battery"
     }
 }
 
@@ -69,6 +71,11 @@ def parse(body)
     {
         def tempVal = degC ? body.temperature.toDouble() : celsiusToFahrenheit(body.temperature.toDouble())
         sendEvent(name: "temperature", value: tempVal?.toDouble())
+    }
+    if(null != body.battery)
+    {
+        def battery = body.battery.toInteger()
+        sendEvent(name: "battery", value: battery)
     }
 }
 
