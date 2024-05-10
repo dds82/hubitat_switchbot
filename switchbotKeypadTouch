@@ -39,6 +39,9 @@ import java.util.Calendar
 @Field static final String PASSCODE_NORMAL = "normal"
 @Field static final String PASSCODE_EXPIRED = "expired"
 
+@Field static final MILLISECONDS_IN_DAY = 86400000
+@Field static final MILLISECONDS_IN_HOUR = 3600000
+
 metadata
 {
     definition(name: "SwitchBot Keypad Touch", namespace: "tomw", author: "dsegall", importUrl: "")
@@ -123,6 +126,7 @@ def writeDeviceCommand(command, parameter = "default", commandType = "command")
 
 def createKey(String name, String code, String type=PERMANENT, String startTimeS=null, String endTimeS=null) {
     if (!atomicState.lockCodesByName.containsKey(name)) {
+        logDebug("createKey ${name}")
         long startTime = 0
         long endTime = 0
         Date now = new Date()
@@ -147,6 +151,13 @@ def createKey(String name, String code, String type=PERMANENT, String startTimeS
             Calendar cal = timeToday(endTimeS)
             Date date = cal.getTime()
             endTime = date.getTime()
+            if (now.after(date)) {
+                if (startTimeS) startTime += MILLISECONDS_IN_DAY
+                endTime += MILLISECONDS_IN_DAY
+            }
+            
+            if (startTimeS && endTime - startTime < MILLISECONDS_IN_HOUR)
+                endTime = startTime + MILLISECONDS_IN_HOUR + 60000
         }
     
       Map params = ["name": name, "type": type, "password": code, "startTime": startTime, "endTime": endTime]
