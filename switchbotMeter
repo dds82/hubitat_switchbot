@@ -78,6 +78,3 @@ def parse(body)
         sendEvent(name: "battery", value: battery)
     }
 }
-
-def readDeviceDetails(details) {
-}
