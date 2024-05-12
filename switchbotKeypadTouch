@@ -26,6 +26,10 @@ import groovy.json.JsonBuilder
 import groovy.transform.Field
 
 import java.util.Calendar
+import javax.crypto.*
+import javax.crypto.spec.*
+
+import hubitat.helper.HexUtils
 
 @Field static final String PERMANENT = "permanent"
 @Field static final String TIMED = "timeLimit"
@@ -89,7 +93,7 @@ def updated() {
 
 def refresh()
 {
-    parent?.rereadDevices(device.getDeviceNetworkId())
+    readDeviceDetails()
 }
 
 def parse(body)
@@ -204,7 +208,16 @@ def deleteKeyByName(String name, boolean recordPendingCommand=true) {
     }
 }
 
-def readDeviceDetails(details) {
+def readDeviceDetails()
+{
+    if(!parent) { return }
+    
+    parent.readDevices()
+    devices = parent.getDevices()?.deviceList
+    details = devices?.find { it.deviceId == parent.getId(device.getDeviceNetworkId()) }
+    
+    logDebug("Details=" + details)
+    
     atomicState.lockCodes = []
     atomicState.lockCodesByName = [:]
     def expiredCodes = []
@@ -268,9 +281,30 @@ def getCodes() {
     def codes = [:]
     int i = 0
     for (it in atomicState.lockCodes) {
-        codes[i++] = ["name": it.name, "code": parent?.decryptPasscode(it.iv, it.code)]
+        codes[i++] = ["name": it.name, "code": decryptPasscode(it.iv, it.code)]
     }
 
     String str = new JsonBuilder(codes).toString()
     return encryptionEnabled ? encrypt(str) : str
+}
+
+def decryptPasscode(String iv, String encrypted) {
+    if (!parent) return
+    parent.cacheSecretKey()
+    String secretKey = parent.getDataValue("developerSecretKey")
+     try {
+         byte[] ivBytes = HexUtils.hexStringToByteArray(iv)
+        def ivSpec = new IvParameterSpec(ivBytes)
+        def skeySpec = new SecretKeySpec(HexUtils.hexStringToByteArray(secretKey), "AES")
+         
+        def cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec)
+        byte[] original = cipher.doFinal(encrypted.decodeBase64())
+ 
+        return new String(original)
+    } catch (Exception ex) {
+        logDebug(ex)
+    }
+ 
+    return null
 }
