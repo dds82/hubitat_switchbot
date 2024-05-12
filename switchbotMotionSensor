@@ -61,6 +61,3 @@ def parse(body)
         sendEvent(name: "motion", value: ([true, "DETECTED"].contains(body.moveDetected)) ? "active" : "inactive")
     }
 }
-
-def readDeviceDetails(details) {
-}
