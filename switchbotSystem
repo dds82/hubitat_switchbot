@@ -53,6 +53,7 @@ metadata
         
         command "cacheHttpParams"
         command "cacheToken"
+        command "cacheSecretKey"
         
         command "parse", ["eventMap"]
         
@@ -97,20 +98,6 @@ def initialize()
     catch (Exception e)
     {
         logDebug("initialize() failed: ${e.message}")
-        return
-    }
-}
-
-def rereadDevices(String requestorDNI=null)
-{
-    try
-    {
-        readDevices()
-        createChildDevices(false, requestorDNI)
-    }
-    catch (Exception e)
-    {
-        logDebug("rereadDevices() failed: ${e.message}")
         return
     }
 }
@@ -176,6 +163,12 @@ def cacheToken()
     updateDataValue("token", openToken)
 }
 
+def cacheSecretKey()
+{
+    // workaround to support app that isn't this driver's parent
+    updateDataValue("developerSecretKey", secretKey)
+}
+
 def cacheHttpParams()
 {
     // workaround to support app that isn't this driver's parent
@@ -212,7 +205,7 @@ def refreshFromParent(child)
     }
 }
 
-def createChildDevices(boolean createNewDevices=true, String requestorDNI=null)
+def createChildDevices(boolean createNewDevices=true)
 {
     def devices = getDevices()
 
@@ -256,9 +249,6 @@ def createChildDevices(boolean createNewDevices=true, String requestorDNI=null)
                 
                 childDevice = createChildDevice(it.deviceName, it.deviceId, it.deviceType)
             }
-
-            if (childDevice && (requestorDNI == null || requestorDNI == childDevice.getDeviceNetworkId()))
-                childDevice.readDeviceDetails(it)
         }
     }
     
@@ -531,34 +521,6 @@ def hmac_sha256(String secretKey, String data)
     
     // send it back as a Base64 string
     return org.apache.commons.codec.binary.Base64.encodeBase64String(sign)
-}
-
-def decryptPasscode(String iv, String encrypted) {
-     try {
-         byte[] ivBytes = hexStringToByteArray(iv)
-        def ivSpec = new IvParameterSpec(ivBytes)
-        def skeySpec = new SecretKeySpec(hexStringToByteArray(secretKey), "AES")
-         
-        def cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec)
-        byte[] original = cipher.doFinal(encrypted.decodeBase64())
- 
-        return new String(original)
-    } catch (Exception ex) {
-        logDebug(ex)
-    }
- 
-    return null
-}
-
-byte[] hexStringToByteArray(String s) {
-    int len = s.length()
-    byte[] data = new byte[len / 2]
-    for (int i = 0; i < len; i += 2) {
-        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                             + Character.digit(s.charAt(i+1), 16))
-    }
-    return data
 }
 
 def httpGetExec(params, throwToCaller = false)
