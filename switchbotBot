@@ -98,6 +98,3 @@ def push(buttonNumber = 0)
         runIn(2, refresh)
     }
 }
-
-def readDeviceDetails(details) {
-}
