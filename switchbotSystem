@@ -18,7 +18,7 @@ limitations under the License.
 
 Change history:
 
-0.9.24 - dsegall - added Keypad Touch
+0.x.x (05/21 PM) - Bugfixes and new device aliases
 0.9.21 - tomw -
     Added temperature, humidity, and lightLevel support for Hub 2 (in SwitchBot Meter driver).
     Added Indoor/Outdoor Thermo-Hygrometer (in SwitchBot Meter driver).
@@ -35,8 +35,6 @@ Change history:
 0.9.0  - tomw - Initial release.
 
 */
-
-import org.apache.commons.codec.binary.Base64
 
 metadata
 {
@@ -107,8 +105,7 @@ def updated()
 
 def configure()
 {
-    state.clear
-    
+    state.clear()
     initialize()
 }
 
@@ -155,23 +152,11 @@ def checkCommStatus()
     }
 }
 
-def cacheToken()
-{
-    // workaround to support app that isn't this driver's parent
-    updateDataValue("token", openToken)
-}
+def cacheToken() { updateDataValue("token", openToken) }
 
-def cacheSecretKey()
-{
-    // workaround to support app that isn't this driver's parent
-    updateDataValue("developerSecretKey", secretKey)
-}
+def cacheSecretKey() { updateDataValue("secretKey", secretKey) }
 
-def cacheHttpParams()
-{
-    // workaround to support app that isn't this driver's parent
-    updateDataValue("params", groovy.json.JsonOutput.toJson(genParamsMain("")))
-}
+def cacheHttpParams() { updateDataValue("params", groovy.json.JsonOutput.toJson(genParamsMain(""))) }
 
 def parse(Map eventMap)
 {
@@ -203,7 +188,7 @@ def refreshFromParent(child)
     }
 }
 
-def createChildDevices(boolean createNewDevices=true)
+def createChildDevices()
 {
     def devices = getDevices()
 
@@ -229,24 +214,22 @@ def createChildDevices(boolean createNewDevices=true)
         }
         
         if(["Plug Mini (US)", "Plug Mini (JP)"].contains(it.deviceType)) { it.deviceType = "Plug Mini" }        
-        if(it.deviceType == "Color Bulb") { it.deviceType = "Strip Light" }        
-        if(it.deviceType == "Curtain3") { it.deviceType = "Curtain" }
-
-        def childDevice = findChildDevice(it.deviceId, it.deviceType)
-        if(it.deviceId && it.deviceName && it.deviceType)
+        else if(it.deviceType == "Color Bulb") { it.deviceType = "Strip Light" }        
+        else if(it.deviceType == "Curtain3") { it.deviceType = "Curtain" }
+        else if(it.deviceType == "Smart Lock Pro") { it.deviceType = "Smart Lock" }
+        
+        if((it.deviceId && it.deviceName && it.deviceType) && !findChildDevice(it.deviceId, it.deviceType))
         {
-            if (!childDevice && createNewDevices) {
-                if(["Curtain", "Blind Tilt"].contains(it.deviceType))
+            if(["Curtain", "Blind Tilt"].contains(it.deviceType))
+            {
+                // only create children for ungrouped Curtains and group masters
+                if(!((it.group != true) || (it.master == true)))
                 {
-                    // only create children for ungrouped Curtains and group masters
-                    if(!((it.group != true) || (it.master == true)))
-                    {
-                        continue
-                    }
+                    continue
                 }
-                
-                childDevice = createChildDevice(it.deviceName, it.deviceId, it.deviceType)
             }
+            
+            createChildDevice(it.deviceName, it.deviceId, it.deviceType)
         }
     }
     
@@ -307,7 +290,7 @@ def createChildDevice(name, id, deviceType)
 {
     try
     {
-        def customDevTypes = ["Bot", "Curtain", "Meter", "IR Device", "Humidifier", "Strip Light", "Smart Lock", "Motion Sensor", "Contact Sensor", "Plug Mini", "Blind Tilt", "Keypad Touch", "Smart Lock Pro"]
+        def customDevTypes = ["Bot", "Curtain", "Meter", "IR Device", "Humidifier", "Strip Light", "Smart Lock", "Motion Sensor", "Contact Sensor", "Plug Mini", "Blind Tilt", "Smart Lock Pro", "Keypad Touch"]
         def genericDevTypes = []
         
         deviceType = deviceType.toString()
@@ -323,8 +306,6 @@ def createChildDevice(name, id, deviceType)
             logDebug("createChildDevice: deviceType not supported")
             throw new Exception("deviceType not supported")
         }
-
-        if (deviceType == "Smart Lock Pro") deviceType = "Smart Lock"
         
         def virtDevType = ((customDevTypes.contains(deviceType)) ? "SwitchBot " : "Generic Component ") + deviceType
         def virtDevData = [name: childName(name, deviceType), label: childName(name, deviceType), isComponent: false]
@@ -350,113 +331,54 @@ def createChildDevice(name, id, deviceType)
     }
 }
 
-def readDevices()
+def readEndpoint(ep)
 {
     try
     {
-        def resp = httpGetExec(genParamsMain("devices"), true)
+        def resp = httpExec("GET", genParamsMain(ep), true)
         
-        if(resp)
-        {
-            setDevices(resp?.data?.body)
-        }
-        
+        def val = resp?.data?.body
+        if(val) { setState(ep, val) }        
         sendEvent(name: "commStatus", value: "good")
+        
+        return val
     }
     catch (Exception e)
     {
-        logDebug("readDevices() failed: ${e.message}")
+        logDebug("readEndpoint(${ep}) failed: ${e.message}")
         sendEvent(name: "commStatus", value: "error")
         
         throw(e)
-    }
-        
+    }        
 }
 
-def setDevices(devices)
-{
-    state.devices = devices
-}
+void setState(name, value) { state[name] = value }
+def getState(name) { return state[name] }
 
-def getDevices()
-{
-    return state.devices
-}
+def readDevices() { return readEndpoint("devices") }
+void setDevices(devices) { setState("devices", devices) }
+def getDevices() { return getState("devices") }
 
-def readScenes()
-{
-    try
-    {
-        def resp = httpGetExec(genParamsMain("scenes"), true)
-        
-        if(resp)
-        {
-            setScenes(resp?.data?.body)
-        }
-        
-        sendEvent(name: "commStatus", value: "good")
-    }
-    catch (Exception e)
-    {
-        logDebug("readScenes() failed: ${e.message}")
-        sendEvent(name: "commStatus", value: "error")
-        
-        throw(e)
-    }
-        
-}
-
-def setScenes(scenes)
-{
-    state.scenes = scenes
-}
-
-def getScenes()
-{
-    return state.scenes
-}
+def readScenes() { return readEndpoint("scenes") }
+void setScenes(scenes) { setState("scenes", scenes) }
+def getScenes() { return getState("scenes") }
 
 def executeScene(sceneId)
 {
-    try
-    {
-        return httpExec("POST", genParamsMain("scenes/${sceneId}/execute"), true)?.data
-    }
-    catch (Exception e)
-    {
-        logDebug("executeScene failed: ${e.message}")
-        throw(e)
-    }
+    return httpExec("POST", genParamsMain("scenes/${sceneId}/execute"))?.data
 }
 
 def writeDeviceCommand(id, command, parameter, commandType)
 {
-    try
-    {
-        def body = [command: command, parameter: parameter, commandType: commandType]
-        body = groovy.json.JsonOutput.toJson(body)
-        
-        return httpExec("POST", genParamsMain("devices/${id}/commands", body), true)?.data
-    }
-    catch (Exception e)
-    {
-        logDebug("writeDeviceCommand failed: ${e.message}")
-        throw(e)
-    }
+    def body = [command: command, parameter: parameter, commandType: commandType]
+    body = groovy.json.JsonOutput.toJson(body)
+    
+    return httpExec("POST", genParamsMain("devices/${id}/commands", body))?.data
 }
 
 def readDeviceStatus(id)
 {
-    try
-    {
-        def resp = httpExec("GET", genParamsMain("devices/${id}/status"), true)?.data
-        return resp
-    }
-    catch (Exception e)
-    {
-        logDebug("readDeviceStatus failed: ${e.message}")
-        throw(e)
-    }
+    return httpExec("GET", genParamsMain("devices/${id}/status"))?.data
 }
 
 def getBaseURI()
@@ -521,85 +443,38 @@ def hmac_sha256(String secretKey, String data)
     return org.apache.commons.codec.binary.Base64.encodeBase64String(sign)
 }
 
-def httpGetExec(params, throwToCaller = false)
+def httpExec(String operation, Map params, Boolean throwToCaller = false)
 {
-    logDebug("httpGetExec(${params})")
+    def result = null
     
-    try
-    {
-        def result
-        httpGet(params)
-        { resp ->
-            if (resp)
-            {
-                logDebug("resp.data = ${resp.data}")
-                result = resp
-            }
-        }
-        return result
-    }
-    catch (Exception e)
-    {
-        logDebug("httpGetExec() failed: ${e.message}")
-        //logDebug("status = ${e.getResponse().getStatus().toInteger()}")
-        if(throwToCaller)
-        {
-            throw(e)
-        }
-    }
-}
-
-def httpPostExec(params, throwToCaller = false)
-{
-    logDebug("httpPostExec(${params})")
+    logDebug("httpExec(${operation}, ${params})")
     
-    try
-    {
-        def result
-        httpPost(params)
-        { resp ->
-            if (resp)
-            {
-                logDebug("resp.data = ${resp.data}")
-                result = resp
-            }
-        }
-        return result
+    def httpClosure = 
+    { resp ->
+        result = resp
+        //logDebug("result.data = ${result.data}")
     }
-    catch (Exception e)
-    {
-        logDebug("httpPostExec() failed: ${e.message}")
-        //logDebug("status = ${e.getResponse().getStatus().toInteger()}")
-        if(throwToCaller)
-        {
-            throw(e)
-        }
-    }
-}
-
-def httpExec(operation, params, throwToCaller = false)
-{
-    def res
+    
+    def httpOp
     
     switch(operation)
     {
-        default:
-            logDebug("unsupported Http operation")
-        
-            if(throwToCaller)
-            {
-                throw new Exception("unsupported Http operation")
-            }
-            break
-        
         case "POST":
-            res = httpPostExec(params, throwToCaller)
+            httpOp = this.delegate.&httpPost
             break
-        
         case "GET":
-            res = httpGetExec(params, throwToCaller)
+            httpOp = this.delegate.&httpGet
             break
     }
     
-    return res
+    try
+    {
+        httpOp(params, httpClosure)
+        return result
+    }
+    catch (Exception e)
+    {
+        logDebug("httpExec(${operation}, ${params}) failed: ${e}")
+        if(throwToCaller) { throw(e) }
+    }
 }
