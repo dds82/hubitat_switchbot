@@ -212,8 +212,7 @@ def readDeviceDetails()
 {
     if(!parent) { return }
     
-    parent.readDevices()
-    devices = parent.getDevices()?.deviceList
+    devices = parent.readDevices()?.deviceList
     details = devices?.find { it.deviceId == parent.getId(device.getDeviceNetworkId()) }
     
     logDebug("Details=" + details)
