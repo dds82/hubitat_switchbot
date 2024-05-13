@@ -291,7 +291,7 @@ def getCodes() {
 def decryptPasscode(String iv, String encrypted) {
     if (!parent) return
     parent.cacheSecretKey()
-    String secretKey = parent.getDataValue("developerSecretKey")
+    String secretKey = parent.getDataValue("secretKey")
      try {
          byte[] ivBytes = HexUtils.hexStringToByteArray(iv)
         def ivSpec = new IvParameterSpec(ivBytes)
