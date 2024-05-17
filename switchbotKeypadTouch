@@ -55,7 +55,6 @@ metadata
         capability "Initialize"
 
         command "createKey", [[name: "Name*", type: "STRING"], [name: "Password*", type: "STRING"], [name: "Type", type: "ENUM", constraints: [PERMANENT, TIMED, DISPOSABLE, EMERGENCY]], [name: "Start Time", type: "STRING"], [name: "End Time", type: "STRING"]]
-        command "deleteKey", [[name: "ID*", type: "STRING"]]
         command "deleteKeyByName", [[name: "Name*", type: "STRING"]]
     }
 
@@ -80,8 +79,6 @@ def logDebug(msg)
 
 def initialize()
 {
-    atomicState.pendingCommands = 0
-    atomicState.needsReread = false
     sendEvent(name: "codeLength", value: 12)
     sendEvent(name: "maxCodes", value: 100)
     refresh()
@@ -101,20 +98,15 @@ def parse(body)
     if (logEnable)
     logDebug("parse: ${body}")
 
-    if (atomicState.pendingCommands > 0) atomicState.pendingCommands--
-
     if (body.result == "success") {
-        atomicState.needsReread = true
         if (body.eventName == "createKey")
             sendEvent(name: "codeChanged", value: "added")
         else if (body.eventName == "deleteKey")
             sendEvent(name: "codeChanged", value: "deleted")
 
-        if (atomicState.pendingCommands == 0) {
-            atomicState.needsReread = false
-            logDebug("Refreshing...")
-            runIn(1, "refresh")
-        }
+        atomicState.lastSuccessfulModificationTime = new Date()
+        logDebug("Scheduling refresh task...")
+        runIn(30000, "refresh")
     }
     else sendEvent(name: "codeChanged", value: "failed")
 }
@@ -165,13 +157,11 @@ def createKey(String name, String code, String type=PERMANENT, String startTimeS
         }
     
       Map params = ["name": name, "type": type, "password": code, "startTime": startTime, "endTime": endTime]
-        atomicState.pendingCommands++
             try {
               writeDeviceCommand("createKey", params)
             }
         catch (Exception e) {
             logDebug("createKey failed: ${e.getMessage()}")
-            atomicState.pendingCommands--
         }
     }
 }
@@ -186,25 +176,36 @@ Calendar timeToday(String time) {
     return today
 }
 
-def deleteKey(String id, boolean recordPendingCommand=true) {
-    if (recordPendingCommand)
-        atomicState.pendingCommands++
-
+def deleteKey(String id) {
      logDebug("deleteKey id=${id}")
     try {
          writeDeviceCommand("deleteKey", ["id": id])
     }
     catch (Exception e) {
         logDebug("deleteKey failed: ${e.getMessage()}")
-        atomicState.pendingCommands--
     }
 }
 
-def deleteKeyByName(String name, boolean recordPendingCommand=true) {
-    String id = atomicState.lockCodesByName[name]
-    logDebug("deleteKeyByName found key ${id}")
-    if (id) {
-        deleteKey(id, recordPendingCommand)
+def deleteKeyByName(String name) {
+    Map lockCode = atomicState.lockCodesByName[name]
+    logDebug("deleteKeyByName found key ${lockCode}")
+    if (lockCode) {
+        deleteAndRemoveLockCode(lockCode)
+    }
+}
+
+def deleteAndRemoveLockCode(Map lockCode) {
+    if (lockCode) {
+        def newCodes = []
+        def newCodesByName = [:]
+        
+        newCodes.addAll(atomicState.lockCodes)
+        newCodesByName.putAll(atomicState.lockCodesByName)
+        newCodes.remove(lockCode)
+        newCodesByName.remove(lockCode.name)
+        atomicState.lockCodes = newCodes
+        atomicState.lockCodesByName = newCodesByName
+        deleteKey(lockCode.id.toString())
     }
 }
 
@@ -227,8 +228,9 @@ def readDeviceDetails()
     logDebug("Details=" + details)
     for (it in details?.keyList) {
         logDebug("Code=" + it)
-        newCodes << ["id": it.id, "name": it.name, "code": it.password, "iv": it.iv, "status": it.status]
-        newCodesByName[it.name] = it.id
+        Map lockCode =  ["id": it.id, "name": it.name, "code": it.password, "iv": it.iv, "status": it.status]
+        newCodes << lockCode
+        newCodesByName[it.name] = lockCode
         if (it.status == PASSCODE_EXPIRED)
             expiredCodes << it.id
     }
@@ -252,18 +254,17 @@ def cleanExpiredCodes(expiredCodes) {
     boolean clean = deleteExpiredCodes == null ? true : deleteExpiredCodes
     logDebug("cleanExpiredCodes=${clean} size=${expiredCodes.size}")
     if (clean) {
-        atomicState.pendingCommands += expiredCodes.size()
         for (code in expiredCodes) {
             String codeStr = code.toString()
             logDebug("Deleting expired code ${codeStr}")
-            deleteKey(codeStr, false)
+            deleteKey(codeStr)
         }
     }
 }
 
 def deleteCode(position) {
     if (position >= 0 && position < atomicState.lockCodes.size() && atomicState.lockCodes[position])
-        deleteKey(atomicState.lockCodes[position].id.toString())
+        deleteAndRemoveLockCode(atomicState.lockCodes[position])
 }
 
 def setCodeLength() {
